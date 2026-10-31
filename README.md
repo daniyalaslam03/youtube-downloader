@@ -6,11 +6,12 @@ A Windows desktop application for downloading YouTube videos and playlists with 
 
 - Download individual YouTube videos.
 - Download complete playlists.
-- Select video quality.
-- Extract audio.
-- Resume interrupted playlist downloads.
-- Keep track of download history.
-- Retry previous downloads.
+- Select video quality (360p through 4K, or best available).
+- Extract audio in supported formats.
+- Choose a default download folder on first launch; the selection is saved for future launches.
+- Re-prompt if the saved download folder is no longer available.
+- Resume interrupted downloads and playlists.
+- Keep track of download history and retry previous downloads.
 - Manage application settings.
 - Update bundled dependencies.
 
@@ -22,10 +23,14 @@ A Windows desktop application for downloading YouTube videos and playlists with 
 ## Installation
 
 1. Visit the [Releases](https://github.com/daniyalaslam03/youtube-downloader/releases) page.
-2. Download the latest `YouTubeDownloader-Setup.exe`.
+2. Download the latest installer, currently `YouTubeDownloader-Setup-1.0.1.exe`.
 3. Run the installer.
 4. Follow the installation instructions.
-5. Launch YouTube Downloader.
+5. Launch YouTube Downloader and choose your default download folder when prompted.
+
+## Default video container
+
+The supplied settings use MP4 as the preferred merge container. This does not re-encode every download; it asks yt-dlp to use MP4 when merging compatible streams.
 
 ## Technology
 
@@ -46,4 +51,4 @@ For bug reports and feature requests, please use the repository's [Issues](https
 
 ---
 
-**YouTube Downloader — Version 1.0.0**
+**YouTube Downloader — Version 1.0.1**
