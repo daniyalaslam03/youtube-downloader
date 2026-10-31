@@ -2,7 +2,7 @@
   "video": {
     "codec": "default",
     "default_quality": "best",
-    "container": "auto"
+    "container": "mp4"
   },
   "audio": {
     "default_format": "original"
