@@ -53,15 +53,111 @@ function Get-ToolPath([string]$Name) {
 function Get-DownloadRoot {
     $configured = [string]$Settings.downloads.default_location
 
-    if (![string]::IsNullOrWhiteSpace($configured)) {
-        return [Environment]::ExpandEnvironmentVariables($configured)
+    if ([string]::IsNullOrWhiteSpace($configured)) {
+        throw 'The default download folder has not been configured.'
     }
 
-    return (Join-Path $Root 'downloads')
+    return [Environment]::ExpandEnvironmentVariables($configured)
 }
 
 function Save-Json([object]$Object,[string]$Path) {
     $Object | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+# -------------------------------------------------
+# FIRST-RUN DOWNLOAD FOLDER SETUP
+# -------------------------------------------------
+
+function Select-DownloadFolder {
+    Add-Type -AssemblyName System.Windows.Forms
+
+    $downloadsFolder = Join-Path $env:USERPROFILE 'Downloads'
+
+    if (!(Test-Path -LiteralPath $downloadsFolder -PathType Container)) {
+        $downloadsFolder = $env:USERPROFILE
+    }
+
+    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dialog.Description = 'Choose the default folder for your downloads.'
+    $dialog.SelectedPath = $downloadsFolder
+    $dialog.ShowNewFolderButton = $true
+
+    try {
+        $result = $dialog.ShowDialog()
+        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+            return $dialog.SelectedPath
+        }
+        return $null
+    }
+    finally {
+        $dialog.Dispose()
+    }
+}
+
+function Ensure-DownloadLocation {
+    $configured = [string]$Settings.downloads.default_location
+
+    if (![string]::IsNullOrWhiteSpace($configured)) {
+        $configured = [Environment]::ExpandEnvironmentVariables($configured)
+        if (Test-Path -LiteralPath $configured -PathType Container) {
+            return $true
+        }
+    }
+
+    Write-Title
+    Write-Host 'WELCOME TO YOUTUBE DOWNLOADER' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host 'Choose where your downloaded videos and audio should be saved.'
+    Write-Host 'The selected folder will be remembered for future launches.'
+    Write-Host ''
+    Write-Host 'The default selection is your Windows Downloads folder.'
+    Write-Host ''
+
+    while ($true) {
+        $selectedFolder = Select-DownloadFolder
+
+        if ([string]::IsNullOrWhiteSpace($selectedFolder)) {
+            Write-Host ''
+            Write-Host 'No download folder was selected.' -ForegroundColor Yellow
+            Write-Host 'YouTube Downloader cannot continue without a download folder.' -ForegroundColor Red
+            return $false
+        }
+
+        try {
+            if (!(Test-Path -LiteralPath $selectedFolder -PathType Container)) {
+                New-Item -ItemType Directory -Path $selectedFolder -Force | Out-Null
+            }
+
+            if ($null -eq $Settings.downloads) {
+                $Settings | Add-Member -NotePropertyName downloads -NotePropertyValue ([pscustomobject]@{})
+            }
+
+            if ($null -eq $Settings.downloads.PSObject.Properties['default_location']) {
+                $Settings.downloads | Add-Member -NotePropertyName default_location -NotePropertyValue $selectedFolder
+            }
+            else {
+                $Settings.downloads.default_location = $selectedFolder
+            }
+
+            Save-Json -Object $Settings -Path $SettingsPath
+
+            Write-Host ''
+            Write-Host 'Default download folder saved successfully.' -ForegroundColor Green
+            Write-Host $selectedFolder -ForegroundColor Gray
+            Start-Sleep -Seconds 2
+            return $true
+        }
+        catch {
+            Write-Host ''
+            Write-Host "Could not save the selected folder: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host 'Check application folder permissions, then try again.'
+            Read-Host 'Press Enter to try again' | Out-Null
+        }
+    }
+}
+
+if (!(Ensure-DownloadLocation)) {
+    exit 1
 }
 
 function Get-History {
